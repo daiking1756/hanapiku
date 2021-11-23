@@ -19,7 +19,7 @@ void setup() {
 
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds_color, NUM_LEDS);
   FastLED.setBrightness(20);
-  for(int i=0; i<NUM_LEDS; i++) {
+  for (int i = 0; i < NUM_LEDS; i++) {
     leds_color[i] = CRGB::White;
   }
 
@@ -27,13 +27,13 @@ void setup() {
 }
 
 void change_to_off_color() {
-  for(int i=0; i<NUM_LEDS; i++) {
+  for (int i = 0; i < NUM_LEDS; i++) {
     leds_color[i] = CRGB::White;
   }
 }
 
 void change_to_on_color() {
-  for(int i=0; i<NUM_LEDS; i++) {
+  for (int i = 0; i < NUM_LEDS; i++) {
     leds_color[i] = CRGB::Red;
   }
 }
