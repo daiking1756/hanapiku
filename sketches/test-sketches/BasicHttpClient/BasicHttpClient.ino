@@ -15,9 +15,7 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <HTTPClient.h>
-
-#define WIFI_SSID "**********"
-#define WIFI_PASS "**********"
+#include "secret.h"
 
 WiFiMulti wifiMulti;
 HTTPClient http;
