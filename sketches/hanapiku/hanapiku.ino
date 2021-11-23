@@ -3,7 +3,7 @@
 
 #define VOL_PIN 36
 #define LED_PIN 32
-#define smoothing_ratio 0.1
+#define SMOOTHING_RATIO 0.1
 #define NUM_LEDS 3
 
 int raw_value = 0;
@@ -39,7 +39,7 @@ void change_to_on_color() {
 
 void loop() {
   raw_value = analogRead(VOL_PIN);
-  smoothing_value = smoothing_ratio * smoothing_value + (1 - smoothing_ratio) * (float)raw_value;
+  smoothing_value = SMOOTHING_RATIO * smoothing_value + (1 - SMOOTHING_RATIO) * (float)raw_value;
 
   Serial.print("raw_value: ");
   Serial.print(raw_value);
