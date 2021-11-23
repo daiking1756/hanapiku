@@ -18,11 +18,10 @@ int is_hanapiku_on = 0;
 CRGB leds_color[NUM_LEDS];
 WiFiMulti wifiMulti;
 HTTPClient http;
-const int capacity = JSON_OBJECT_SIZE(2);
-StaticJsonDocument<capacity> json_request;
 char buffer[255];
 unsigned long counter = 0;
 unsigned long tick = 0;
+String authorization = "Bearer ";
 
 void setup() {
   M5.begin();
@@ -42,8 +41,7 @@ void setup() {
   } else {
     M5.Lcd.print("connect failed");
   }
-
-  //  M5.Lcd.print("Hello HANAPIKU!\n\n");
+  authorization += CHANNEL_ACCESS_TOKEN;
 }
 
 void change_to_off_color() {
@@ -63,7 +61,7 @@ void update_sensor_value() {
   smoothing_value = SMOOTHING_RATIO * smoothing_value + (1 - SMOOTHING_RATIO) * (float)raw_value;
 }
 
-void show_sensor_value() {
+void print_sensor_value() {
   Serial.print("raw_value: ");
   Serial.print(raw_value);
   Serial.print(", ");
@@ -73,43 +71,28 @@ void show_sensor_value() {
   Serial.print("\n");
 }
 
-void get_http_request() {
-  M5.Lcd.print("[HTTP] begin...\n");
-  http.begin("https://httpbin.org/get");
-  M5.Lcd.print("[HTTP] GET...\n");
-  int httpCode = http.GET();  // start connection and send HTTP header.
-  if (httpCode > 0) { // httpCode will be negative on error.
-    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-    M5.Lcd.print("Please see Serial.");
-    if (httpCode == HTTP_CODE_OK) { // file found at server.
-      String payload = http.getString();
-      Serial.println(payload);
-    }
-  } else {
-    M5.Lcd.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-  }
-  http.end();
-}
+void post_line_message(String payload_text) {
+  DynamicJsonDocument json_request_doc(200);
+  JsonArray messages = json_request_doc.createNestedArray("messages");
+  messages[0]["type"] = "text";
+  messages[0]["text"] = "PIKUN";
 
-void post_http_request() {
-  counter++;
-  tick = millis();
-
-  json_request["counter"] = counter;
-  json_request["tick"] = tick;
-
-  serializeJson(json_request, Serial);
+  serializeJson(json_request_doc, Serial);
   Serial.println("");
 
-  serializeJson(json_request, buffer, sizeof(buffer));
+  serializeJson(json_request_doc, buffer, sizeof(buffer));
 
-  M5.Lcd.print("[HTTP] begin...\n");
-  http.begin("https://httpbin.org/post");
-  M5.Lcd.print("[HTTP] POST...\n");
+//  M5.Lcd.print("POST begin...\n");
+
+  http.begin("https://api.line.me/v2/bot/message/broadcast");
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Authorization", authorization);
+
+//  M5.Lcd.print("POST...\n");
   int httpCode = http.POST((uint8_t*)buffer, strlen(buffer));  // start connection and send HTTP header.
   if (httpCode > 0) { // httpCode will be negative on error.
-    Serial.printf("[HTTP] POST... code: %d\n", httpCode);
-    M5.Lcd.print("Please see Serial.");
+    Serial.printf("POST... code: %d\n", httpCode);
+//    M5.Lcd.print("See Serial...");
     if (httpCode == HTTP_CODE_OK) { // file found at server.
       Stream* resp = http.getStreamPtr();
 
@@ -120,7 +103,7 @@ void post_http_request() {
       Serial.println("");
     }
   } else {
-    M5.Lcd.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
   }
   http.end();
 }
@@ -128,15 +111,15 @@ void post_http_request() {
 void handle_hanapiku_on() {
   is_hanapiku_on = 1;
   change_to_on_color();
-//  get_http_request();
-//  M5.Lcd.print("HANAPIKU!\n");
+  post_line_message("HANAPIKU <ON>");
+  //  M5.Lcd.print("HANAPIKU!\n");
 }
 
 void handle_hanapiku_off() {
   is_hanapiku_on = 0;
   change_to_off_color();
-//  post_http_request();
-//  M5.Lcd.print("none...\n");
+//  post_line_message("HANAPIKU <OFF>");
+  //  M5.Lcd.print("none...\n");
 }
 
 void handle_sensor_value() {
@@ -153,7 +136,7 @@ void handle_sensor_value() {
 
 void loop() {
   update_sensor_value();
-  show_sensor_value();
+  print_sensor_value();
   handle_sensor_value();
   FastLED.show();
 
