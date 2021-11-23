@@ -4,6 +4,7 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <HTTPClient.h>
+#include <ArduinoJson.h>
 #include "secret.h"
 
 #define VOL_PIN 36
@@ -15,6 +16,13 @@ int raw_value = 0;
 float smoothing_value = 0;
 int is_hanapiku_on = 0;
 CRGB leds_color[NUM_LEDS];
+WiFiMulti wifiMulti;
+HTTPClient http;
+const int capacity = JSON_OBJECT_SIZE(2);
+StaticJsonDocument<capacity> json_request;
+char buffer[255];
+unsigned long counter = 0;
+unsigned long tick = 0;
 
 void setup() {
   M5.begin();
@@ -28,7 +36,14 @@ void setup() {
     leds_color[i] = CRGB::White;
   }
 
-  M5.Lcd.print("Hello HANAPIKU!\n\n");
+  wifiMulti.addAP(WIFI_SSID, WIFI_PASS);
+  if ((wifiMulti.run() == WL_CONNECTED)) { // wait for WiFi connection.
+    M5.Lcd.print("connect successful");
+  } else {
+    M5.Lcd.print("connect failed");
+  }
+
+  //  M5.Lcd.print("Hello HANAPIKU!\n\n");
 }
 
 void change_to_off_color() {
@@ -59,20 +74,69 @@ void show_sensor_value() {
 }
 
 void get_http_request() {
-  M5.Lcd.print("get_http_request() called\n");
+  M5.Lcd.print("[HTTP] begin...\n");
+  http.begin("https://httpbin.org/get");
+  M5.Lcd.print("[HTTP] GET...\n");
+  int httpCode = http.GET();  // start connection and send HTTP header.
+  if (httpCode > 0) { // httpCode will be negative on error.
+    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+    M5.Lcd.print("Please see Serial.");
+    if (httpCode == HTTP_CODE_OK) { // file found at server.
+      String payload = http.getString();
+      Serial.println(payload);
+    }
+  } else {
+    M5.Lcd.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+  }
+  http.end();
+}
+
+void post_http_request() {
+  counter++;
+  tick = millis();
+
+  json_request["counter"] = counter;
+  json_request["tick"] = tick;
+
+  serializeJson(json_request, Serial);
+  Serial.println("");
+
+  serializeJson(json_request, buffer, sizeof(buffer));
+
+  M5.Lcd.print("[HTTP] begin...\n");
+  http.begin("https://httpbin.org/post");
+  M5.Lcd.print("[HTTP] POST...\n");
+  int httpCode = http.POST((uint8_t*)buffer, strlen(buffer));  // start connection and send HTTP header.
+  if (httpCode > 0) { // httpCode will be negative on error.
+    Serial.printf("[HTTP] POST... code: %d\n", httpCode);
+    M5.Lcd.print("Please see Serial.");
+    if (httpCode == HTTP_CODE_OK) { // file found at server.
+      Stream* resp = http.getStreamPtr();
+
+      DynamicJsonDocument json_response(255);
+      deserializeJson(json_response, *resp);
+
+      serializeJson(json_response, Serial);
+      Serial.println("");
+    }
+  } else {
+    M5.Lcd.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
+  }
+  http.end();
 }
 
 void handle_hanapiku_on() {
   is_hanapiku_on = 1;
   change_to_on_color();
-  get_http_request();
-  M5.Lcd.print("HANAPIKU!\n");
+//  get_http_request();
+//  M5.Lcd.print("HANAPIKU!\n");
 }
 
 void handle_hanapiku_off() {
   is_hanapiku_on = 0;
   change_to_off_color();
-  M5.Lcd.print("none...\n");
+//  post_http_request();
+//  M5.Lcd.print("none...\n");
 }
 
 void handle_sensor_value() {
