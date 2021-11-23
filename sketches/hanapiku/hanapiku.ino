@@ -18,6 +18,7 @@ int is_hanapiku_on = 0;
 CRGB leds_color[NUM_LEDS];
 WiFiMulti wifiMulti;
 HTTPClient http;
+//StaticJsonDocument<400> json_request_doc;
 char buffer[255];
 unsigned long counter = 0;
 unsigned long tick = 0;
