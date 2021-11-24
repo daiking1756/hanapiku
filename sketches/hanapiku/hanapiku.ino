@@ -71,30 +71,26 @@ void post_line_message(String payload_text) {
 
   serializeJson(json_request_doc, buffer, sizeof(buffer));
 
-  //  M5.Lcd.print("POST begin...\n");
+  http.begin("https://api.line.me/v2/bot/message/broadcast");
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Authorization", authorization);
 
-   http.begin("https://api.line.me/v2/bot/message/broadcast");
-   http.addHeader("Content-Type", "application/json");
-   http.addHeader("Authorization", authorization);
+  int httpCode = http.POST((uint8_t*)buffer, strlen(buffer));  // start connection and send HTTP header.
+  if (httpCode > 0) { // httpCode will be negative on error.
+    Serial.printf("POST... code: %d\n", httpCode);
+    if (httpCode == HTTP_CODE_OK) { // file found at server.
+      Stream* resp = http.getStreamPtr();
 
-  //  M5.Lcd.print("POST...\n");
-   int httpCode = http.POST((uint8_t*)buffer, strlen(buffer));  // start connection and send HTTP header.
-   if (httpCode > 0) { // httpCode will be negative on error.
-     Serial.printf("POST... code: %d\n", httpCode);
-  //    M5.Lcd.print("See Serial...");
-     if (httpCode == HTTP_CODE_OK) { // file found at server.
-       Stream* resp = http.getStreamPtr();
+      DynamicJsonDocument json_response(255);
+      deserializeJson(json_response, *resp);
 
-       DynamicJsonDocument json_response(255);
-       deserializeJson(json_response, *resp);
-
-       serializeJson(json_response, Serial);
-       Serial.println("");
-     }
-   } else {
-     Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
-   }
-   http.end();
+      serializeJson(json_response, Serial);
+      Serial.println("");
+    }
+  } else {
+    Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
+  }
+  http.end();
 }
 
 void update_sensor_value() {
@@ -114,15 +110,12 @@ void print_sensor_value() {
 void handle_hanapiku_on() {
   is_hanapiku_on = true;
   change_to_on_color();
-  post_line_message("HANAPIKU <ON>");
-  //  M5.Lcd.print("HANAPIKU!\n");
+//  post_line_message("HANAPIKU <ON>");
 }
 
 void handle_hanapiku_off() {
   is_hanapiku_on = false;
   change_to_off_color();
-  //  post_line_message("HANAPIKU <OFF>");
-  //  M5.Lcd.print("none...\n");
 }
 
 boolean is_hanapikuing_now() {
@@ -135,17 +128,37 @@ boolean is_hanapikuing_now() {
 
 void handle_sensor_value() {
   if (is_hanapikuing_now()) {
+    Serial.println("is_hanapikuing_now: ON");
     if (!is_hanapiku_on) {
+      Serial.println("call handle <ON>");
       handle_hanapiku_on();
     }
   } else {
+    Serial.println("is_hanapikuing_now: OFF");
     if (is_hanapiku_on) {
+      Serial.println("call handle <OFF>");
       handle_hanapiku_off();
     }
   }
 }
 
+void check_button() {
+  M5.update();
+  if ( M5.BtnA.pressedFor(3000) ) {
+    Serial.println("BtnA.pressedFor(3000) == TRUE");
+    //  M5StickCのメインボタンを3秒長押ししたら、キャリブレーション処理が開始される
+    is_calibration = true;
+  }
+  if (is_calibration) {
+    sensor_calibration();
+  }
+}
+
 void sensor_calibration() {
+  if (sampling_count == 0) {
+    M5.Lcd.print("calibration start\n");
+  }
+
   if (sampling_count > SAMPLING_NUM) {
     int sampling_values_sum = 0;
 
@@ -156,6 +169,7 @@ void sensor_calibration() {
 
     is_calibration = false;
     sampling_count = 0;
+    M5.Lcd.print("calibration completed\n");
     Serial.println("calibration completed");
     Serial.print("base_value: ");
     Serial.println(base_value);
@@ -166,18 +180,6 @@ void sensor_calibration() {
     is_calibration = true;
     sampling_count ++;
     Serial.println("calibration now...");
-  }
-}
-
-
-void check_button() {
-  M5.update();
-  if ( M5.BtnA.pressedFor(3000) ) {
-    Serial.println("BtnA.pressedFor(3000) == TRUE");
-    is_calibration = true;
-  }
-  if (is_calibration) {
-    sensor_calibration();
   }
 }
 
