@@ -10,9 +10,14 @@
 #define VOL_PIN 36
 #define LED_PIN 32
 #define SMOOTHING_RATIO 0.0
+<<<<<<< HEAD
 #define NUM_LEDS 3
 #define SAMPLING_NUM 10
 #define HANAPIKU_RATIO 1.5
+=======
+#define SAMPLING_NUM 30
+#define HANAPIKU_RATIO 0.9
+>>>>>>> cdc7c9a (Improve calibration (after ficks up))
 
 int raw_value = 0;
 float smoothing_value = 0;
@@ -150,9 +155,7 @@ void handle_sensor_value() {
 
 void check_button() {
   M5.update();
-  if ( M5.BtnA.pressedFor(3000) ) {
-    Serial.println("BtnA.pressedFor(3000) == TRUE");
-    //  M5StickCのメインボタンを3秒長押ししたら、キャリブレーション処理が開始される
+  if ( M5.BtnA.pressedFor(1000) ) {
     is_calibration = true;
   }
   if (is_calibration) {
@@ -162,7 +165,7 @@ void check_button() {
 
 void sensor_calibration() {
   if (sampling_count == 0) {
-    M5.Lcd.print("calibration start\n");
+    M5.Lcd.println("calibration start");
   }
 
   if (sampling_count > SAMPLING_NUM) {
@@ -175,6 +178,8 @@ void sensor_calibration() {
 
     is_calibration = false;
     sampling_count = 0;
+    M5.Lcd.println("calibration completed");
+    delay(1000);
     lcd_init();
     Serial.println("calibration completed");
     Serial.print("base_value: ");
@@ -186,6 +191,7 @@ void sensor_calibration() {
     is_calibration = true;
     sampling_count ++;
     Serial.println("calibration now...");
+    M5.Lcd.drawCircle(random(M5.Lcd.width() - 1), random(M5.Lcd.height() - 1), random(M5.Lcd.width() - 1), random(0xfffe));
   }
 }
 
@@ -195,6 +201,9 @@ void loop() {
   handle_sensor_value();
   FastLED.show();
   check_button();
+  if (is_calibration) {
+    sensor_calibration();
+  }
 
-  delay(500);
+  delay(100);
 }
