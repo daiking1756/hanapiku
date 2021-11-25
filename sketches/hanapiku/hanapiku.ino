@@ -9,15 +9,11 @@
 
 #define VOL_PIN 36
 #define LED_PIN 32
+
 #define SMOOTHING_RATIO 0.0
-<<<<<<< HEAD
 #define NUM_LEDS 3
-#define SAMPLING_NUM 10
-#define HANAPIKU_RATIO 1.5
-=======
 #define SAMPLING_NUM 30
 #define HANAPIKU_RATIO 0.9
->>>>>>> cdc7c9a (Improve calibration (after ficks up))
 
 int raw_value = 0;
 float smoothing_value = 0;
@@ -30,6 +26,7 @@ String authorization = "Bearer ";
 boolean is_calibration = false;
 int sampling_count = 0;
 int sampling_values[10];
+float base_value = 0.0;
 boolean enable_post_line = false;
 
 void setup() {
@@ -133,7 +130,7 @@ void handle_hanapiku_off() {
 }
 
 boolean is_hanapikuing_now() {
-  if (smoothing_value / base_value > HANAPIKU_RATIO) {
+  if (smoothing_value / base_value < HANAPIKU_RATIO) {
     return true;
   } else {
     return false;
