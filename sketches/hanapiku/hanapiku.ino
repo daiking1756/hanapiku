@@ -11,7 +11,7 @@
 #define LED_PIN 32
 
 #define SMOOTHING_RATIO 0.0
-#define NUM_LEDS 3
+#define NUM_LEDS 5
 #define SAMPLING_NUM 30
 #define HANAPIKU_RATIO 0.9
 
