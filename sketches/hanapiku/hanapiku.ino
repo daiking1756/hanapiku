@@ -9,10 +9,11 @@
 
 #define VOL_PIN 36
 #define LED_PIN 32
+
 #define SMOOTHING_RATIO 0.0
-#define NUM_LEDS 3
-#define SAMPLING_NUM 10
-#define HANAPIKU_RATIO 1.5
+#define NUM_LEDS 5
+#define SAMPLING_NUM 30
+#define HANAPIKU_RATIO 0.9
 
 int raw_value = 0;
 float smoothing_value = 0;
@@ -25,11 +26,12 @@ String authorization = "Bearer ";
 boolean is_calibration = false;
 int sampling_count = 0;
 int sampling_values[10];
-float base_value = 4096.0;
+float base_value = 0.0;
+boolean enable_post_line = false;
 
 void setup() {
   M5.begin();
-
+  M5.Lcd.setRotation(1);
   Serial.begin(115200);
   pinMode(VOL_PIN, INPUT);
 
@@ -41,11 +43,16 @@ void setup() {
 
   wifiMulti.addAP(WIFI_SSID, WIFI_PASS);
   if ((wifiMulti.run() == WL_CONNECTED)) { // wait for WiFi connection.
-    M5.Lcd.print("connect successful");
+    M5.Lcd.println("connect successful");
   } else {
-    M5.Lcd.print("connect failed");
+    M5.Lcd.println("connect failed");
   }
   authorization += CHANNEL_ACCESS_TOKEN;
+}
+
+void lcd_init() {
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.fillScreen(BLACK);
 }
 
 void change_to_off_color() {
@@ -110,16 +117,20 @@ void print_sensor_value() {
 void handle_hanapiku_on() {
   is_hanapiku_on = true;
   change_to_on_color();
-//  post_line_message("HANAPIKU <ON>");
+  M5.Lcd.fillScreen(RED);
+  if (enable_post_line) {
+    post_line_message("HANAPIKU <ON>");
+  }
 }
 
 void handle_hanapiku_off() {
   is_hanapiku_on = false;
   change_to_off_color();
+  lcd_init();
 }
 
 boolean is_hanapikuing_now() {
-  if (smoothing_value / base_value > HANAPIKU_RATIO) {
+  if (smoothing_value / base_value < HANAPIKU_RATIO) {
     return true;
   } else {
     return false;
@@ -144,19 +155,20 @@ void handle_sensor_value() {
 
 void check_button() {
   M5.update();
-  if ( M5.BtnA.pressedFor(3000) ) {
-    Serial.println("BtnA.pressedFor(3000) == TRUE");
-    //  M5StickCのメインボタンを3秒長押ししたら、キャリブレーション処理が開始される
+  if ( M5.BtnA.pressedFor(1000) ) {
     is_calibration = true;
   }
-  if (is_calibration) {
-    sensor_calibration();
+  if ( M5.BtnB.wasPressed() ) {
+    enable_post_line = !enable_post_line;
+    M5.Lcd.print("enable_post_line: ");
+    M5.Lcd.println(enable_post_line);
+    delay(1000);
   }
 }
 
 void sensor_calibration() {
   if (sampling_count == 0) {
-    M5.Lcd.print("calibration start\n");
+    M5.Lcd.println("calibration start");
   }
 
   if (sampling_count > SAMPLING_NUM) {
@@ -169,7 +181,9 @@ void sensor_calibration() {
 
     is_calibration = false;
     sampling_count = 0;
-    M5.Lcd.print("calibration completed\n");
+    M5.Lcd.println("calibration completed");
+    delay(1000);
+    lcd_init();
     Serial.println("calibration completed");
     Serial.print("base_value: ");
     Serial.println(base_value);
@@ -180,6 +194,7 @@ void sensor_calibration() {
     is_calibration = true;
     sampling_count ++;
     Serial.println("calibration now...");
+    M5.Lcd.drawCircle(random(M5.Lcd.width() - 1), random(M5.Lcd.height() - 1), random(M5.Lcd.width() - 1), random(0xfffe));
   }
 }
 
@@ -189,6 +204,9 @@ void loop() {
   handle_sensor_value();
   FastLED.show();
   check_button();
+  if (is_calibration) {
+    sensor_calibration();
+  }
 
-  delay(500);
+  delay(100);
 }
