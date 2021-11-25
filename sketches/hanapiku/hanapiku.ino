@@ -31,7 +31,7 @@ boolean enable_post_line = false;
 
 void setup() {
   M5.begin();
-
+  M5.Lcd.setRotation(1);
   Serial.begin(115200);
   pinMode(VOL_PIN, INPUT);
 
@@ -43,9 +43,9 @@ void setup() {
 
   wifiMulti.addAP(WIFI_SSID, WIFI_PASS);
   if ((wifiMulti.run() == WL_CONNECTED)) { // wait for WiFi connection.
-    M5.Lcd.print("connect successful");
+    M5.Lcd.println("connect successful");
   } else {
-    M5.Lcd.print("connect failed");
+    M5.Lcd.println("connect failed");
   }
   authorization += CHANNEL_ACCESS_TOKEN;
 }
