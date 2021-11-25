@@ -30,7 +30,7 @@ String authorization = "Bearer ";
 boolean is_calibration = false;
 int sampling_count = 0;
 int sampling_values[10];
-float base_value = 4096.0;
+boolean enable_post_line = false;
 
 void setup() {
   M5.begin();
@@ -120,7 +120,10 @@ void print_sensor_value() {
 void handle_hanapiku_on() {
   is_hanapiku_on = true;
   change_to_on_color();
-//  post_line_message("HANAPIKU <ON>");
+  M5.Lcd.fillScreen(RED);
+  if (enable_post_line) {
+    post_line_message("HANAPIKU <ON>");
+  }
 }
 
 void handle_hanapiku_off() {
@@ -158,8 +161,11 @@ void check_button() {
   if ( M5.BtnA.pressedFor(1000) ) {
     is_calibration = true;
   }
-  if (is_calibration) {
-    sensor_calibration();
+  if ( M5.BtnB.wasPressed() ) {
+    enable_post_line = !enable_post_line;
+    M5.Lcd.print("enable_post_line: ");
+    M5.Lcd.println(enable_post_line);
+    delay(1000);
   }
 }
 
