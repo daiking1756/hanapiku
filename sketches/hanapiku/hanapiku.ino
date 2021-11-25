@@ -48,6 +48,11 @@ void setup() {
   authorization += CHANNEL_ACCESS_TOKEN;
 }
 
+void lcd_init() {
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.fillScreen(BLACK);
+}
+
 void change_to_off_color() {
   for (int i = 0; i < NUM_LEDS; i++) {
     leds_color[i] = CRGB::White;
@@ -116,6 +121,7 @@ void handle_hanapiku_on() {
 void handle_hanapiku_off() {
   is_hanapiku_on = false;
   change_to_off_color();
+  lcd_init();
 }
 
 boolean is_hanapikuing_now() {
@@ -169,7 +175,7 @@ void sensor_calibration() {
 
     is_calibration = false;
     sampling_count = 0;
-    M5.Lcd.print("calibration completed\n");
+    lcd_init();
     Serial.println("calibration completed");
     Serial.print("base_value: ");
     Serial.println(base_value);
