@@ -112,13 +112,21 @@ void print_sensor_value() {
   Serial.print(", ");
 
   Serial.print("smoothing_value: ");
-  Serial.println(smoothing_value);
+  Serial.print(smoothing_value);
+  Serial.print(", ");
+
+  Serial.print("base_value: ");
+  Serial.print(base_value);
+  Serial.print(", ");
+
+  Serial.print("current_hanapiku_ratio: ");
+  Serial.println(current_hanapiku_ratio);
 }
 
 void handle_hanapiku_on() {
   is_hanapiku_on = true;
   change_to_on_color();
-  M5.Lcd.fillScreen(RED);
+  M5.Lcd.fillScreen(WHITE);
   if (enable_post_line) {
     post_line_message("HANAPIKU <ON>");
   }
@@ -141,13 +149,13 @@ boolean is_hanapikuing_now() {
 
 void handle_sensor_value() {
   if (is_hanapikuing_now()) {
-    Serial.println("is_hanapikuing_now: ON");
+    // Serial.println("is_hanapikuing_now: ON");
     if (!is_hanapiku_on) {
       Serial.println("call handle <ON>");
       handle_hanapiku_on();
     }
   } else {
-    Serial.println("is_hanapikuing_now: OFF");
+    // Serial.println("is_hanapikuing_now: OFF");
     if (is_hanapiku_on) {
       Serial.println("call handle <OFF>");
       handle_hanapiku_off();
@@ -184,31 +192,31 @@ void sensor_calibration() {
     is_calibration = false;
     sampling_count = 0;
     M5.Lcd.println("calibration completed");
-    delay(1000);
+    M5.Lcd.print("base value: ");
+    M5.Lcd.println(base_value);
+    delay(2000);
     lcd_init();
-    Serial.println("calibration completed");
+
     Serial.print("base_value: ");
     Serial.println(base_value);
-    Serial.println("");
   } else {
     sampling_values[sampling_count] = raw_value;
 
     is_calibration = true;
     sampling_count ++;
-    Serial.println("calibration now...");
     M5.Lcd.drawCircle(random(M5.Lcd.width() - 1), random(M5.Lcd.height() - 1), random(M5.Lcd.width() - 1), random(0xfffe));
   }
 }
 
 void loop() {
   update_sensor_value();
-  print_sensor_value();
   handle_sensor_value();
+  print_sensor_value();
   FastLED.show();
   check_button();
   if (is_calibration) {
     sensor_calibration();
   }
 
-  delay(100);
+  delay(200);
 }
