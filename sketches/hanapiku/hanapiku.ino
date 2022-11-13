@@ -13,10 +13,11 @@
 #define SMOOTHING_RATIO 0.0
 #define NUM_LEDS 5
 #define SAMPLING_NUM 30
-#define HANAPIKU_RATIO 0.9
+#define HANAPIKU_RATIO_THRESHOLD 1.03
 
 int raw_value = 0;
 float smoothing_value = 0;
+float current_hanapiku_ratio = 1.0;
 boolean is_hanapiku_on = false;
 CRGB leds_color[NUM_LEDS];
 WiFiMulti wifiMulti;
@@ -130,7 +131,8 @@ void handle_hanapiku_off() {
 }
 
 boolean is_hanapikuing_now() {
-  if (smoothing_value / base_value < HANAPIKU_RATIO) {
+  current_hanapiku_ratio = smoothing_value / base_value;
+  if (current_hanapiku_ratio > HANAPIKU_RATIO_THRESHOLD) {
     return true;
   } else {
     return false;
