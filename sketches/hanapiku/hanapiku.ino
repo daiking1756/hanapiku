@@ -1,25 +1,28 @@
 #include <M5StickC.h>
-#include <FastLED.h>
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include "secret.h"
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+ #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
+#endif
 
 #define VOL_PIN 36
 #define LED_PIN 32
-
+#define NUMPIXELS 16
 #define SMOOTHING_RATIO 0.0
-#define NUM_LEDS 5
 #define SAMPLING_NUM 30
 #define HANAPIKU_RATIO_THRESHOLD 1.03
+#define DELAY 200
 
+Adafruit_NeoPixel pixels(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 int raw_value = 0;
 float smoothing_value = 0;
 float current_hanapiku_ratio = 1.0;
 boolean is_hanapiku_on = false;
-CRGB leds_color[NUM_LEDS];
 WiFiMulti wifiMulti;
 HTTPClient http;
 char buffer[255];
@@ -29,6 +32,7 @@ int sampling_count = 0;
 int sampling_values[10];
 float base_value = 0.0;
 boolean enable_post_line = false;
+int num_of_hanapiku = 0;
 
 void setup() {
   M5.begin();
@@ -36,11 +40,11 @@ void setup() {
   Serial.begin(115200);
   pinMode(VOL_PIN, INPUT);
 
-  FastLED.addLeds<WS2812, LED_PIN, GRB>(leds_color, NUM_LEDS);
-  FastLED.setBrightness(20);
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds_color[i] = CRGB::White;
-  }
+  #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
+    clock_prescale_set(clock_div_1);
+  #endif
+  pixels.begin();
+  led_off();
 
   wifiMulti.addAP(WIFI_SSID, WIFI_PASS);
   if ((wifiMulti.run() == WL_CONNECTED)) { // wait for WiFi connection.
@@ -56,15 +60,19 @@ void lcd_init() {
   M5.Lcd.fillScreen(BLACK);
 }
 
-void change_to_off_color() {
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds_color[i] = CRGB::White;
-  }
+void led_off() {
+  pixels.clear();
+  pixels.show();
 }
 
-void change_to_on_color() {
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds_color[i] = CRGB::Red;
+void led_on() {
+  if(num_of_hanapiku > 16){
+    num_of_hanapiku = 0;
+    led_off();
+  }
+  for (int i = 0; i < (num_of_hanapiku % 16) ; i++) {
+    pixels.setPixelColor(i, pixels.Color(20, 20, 20));
+    pixels.show();
   }
 }
 
@@ -125,8 +133,9 @@ void print_sensor_value() {
 
 void handle_hanapiku_on() {
   is_hanapiku_on = true;
-  change_to_on_color();
+  num_of_hanapiku += 1;
   M5.Lcd.fillScreen(WHITE);
+  led_on();
   if (enable_post_line) {
     post_line_message("HANAPIKU <ON>");
   }
@@ -134,7 +143,7 @@ void handle_hanapiku_on() {
 
 void handle_hanapiku_off() {
   is_hanapiku_on = false;
-  change_to_off_color();
+//  led_off();
   lcd_init();
 }
 
@@ -212,11 +221,11 @@ void loop() {
   update_sensor_value();
   handle_sensor_value();
   print_sensor_value();
-  FastLED.show();
+
   check_button();
   if (is_calibration) {
     sensor_calibration();
   }
 
-  delay(200);
+  delay(DELAY);
 }
